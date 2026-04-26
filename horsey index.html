@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horsey — Genome Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f0e;
+  --surface: #141716;
+  --surface2: #1c1f1d;
+  --surface3: #242826;
+  --border: #2a2e2b;
+  --border2: #3a3f3b;
+  --accent: #4ade80;
+  --accent2: #22c55e;
+  --accent-dim: rgba(74,222,128,0.12);
+  --accent-dim2: rgba(74,222,128,0.06);
+  --text: #e8ede9;
+  --text2: #9aa89b;
+  --text3: #5a665b;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --blue: #60a5fa;
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; min-height: 100vh; }
+
+/* ---- LAYOUT ---- */
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 18px 32px;
+  display: flex; align-items: center; gap: 16px;
+}
+.logo-mark {
+  width: 32px; height: 32px; background: var(--accent); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 13px; font-weight: 700; color: #0d0f0e;
+}
+header h1 { font-family: var(--mono); font-size: 14px; font-weight: 700; letter-spacing: 0.08em; color: var(--text); }
+header span { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-left: auto; }
+
+.tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+}
+.tab {
+  padding: 14px 20px; font-family: var(--mono); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.06em; color: var(--text3); cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s; background: none; border-top: none; border-left: none; border-right: none;
+}
+.tab:hover { color: var(--text2); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ---- CARDS ---- */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 24px;
+}
+.card + .card { margin-top: 16px; }
+.card-title {
+  font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  color: var(--text3); text-transform: uppercase; margin-bottom: 16px;
+}
+
+/* ---- ANALYZER ---- */
+.helix-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px;
+}
+.helix-card {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.helix-header {
+  background: var(--surface3); padding: 8px 14px; display: flex; align-items: center;
+  justify-content: space-between; border-bottom: 1px solid var(--border);
+}
+.helix-num { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent); }
+.helix-name { font-size: 11px; color: var(--text3); }
+.helix-body { padding: 10px 14px; }
+.gene-row {
+  display: flex; align-items: center; gap: 8px; padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+}
+.gene-row:last-child { border-bottom: none; }
+.gene-pos { font-family: var(--mono); font-size: 10px; color: var(--text3); width: 22px; flex-shrink: 0; }
+.gene-name { font-family: var(--mono); font-size: 10px; color: var(--text2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.base-select {
+  width: 42px; background: var(--surface); border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--mono); font-size: 11px; font-weight: 700;
+  border-radius: 4px; padding: 2px 4px; cursor: pointer; flex-shrink: 0;
+}
+.base-select:focus { outline: none; border-color: var(--accent); }
+.base-select.base-A { color: var(--yellow); }
+.base-select.base-T { color: var(--red); }
+.base-select.base-C { color: var(--blue); }
+.base-select.base-G { color: var(--accent); }
+.gene-val {
+  font-family: var(--mono); font-size: 11px; font-weight: 700; width: 44px;
+  text-align: right; flex-shrink: 0; color: var(--text);
+}
+.strand-label { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+.strand-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+
+/* ---- PLANNER ---- */
+.search-bar {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--sans); font-size: 14px; border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 16px;
+}
+.search-bar:focus { outline: none; border-color: var(--accent); }
+.search-bar::placeholder { color: var(--text3); }
+.gene-list { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+.gene-item {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.gene-item:hover { border-color: var(--border2); background: var(--surface3); }
+.gene-item.selected { border-color: var(--accent); background: var(--accent-dim2); }
+.gi-helix { font-family: var(--mono); font-size: 10px; color: var(--text3); width: 44px; flex-shrink: 0; }
+.gi-name { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); flex: 1; }
+.gi-options { display: flex; gap: 4px; margin-left: auto; }
+.base-btn {
+  width: 28px; height: 24px; border-radius: 4px; border: 1px solid var(--border2);
+  background: var(--surface); font-family: var(--mono); font-size: 10px; font-weight: 700;
+  cursor: pointer; color: var(--text2); transition: all 0.1s;
+}
+.base-btn:hover { border-color: var(--border2); }
+.base-btn.sel-A { background: rgba(251,191,36,0.2); border-color: var(--yellow); color: var(--yellow); }
+.base-btn.sel-T { background: rgba(248,113,113,0.2); border-color: var(--red); color: var(--red); }
+.base-btn.sel-C { background: rgba(96,165,250,0.2); border-color: var(--blue); color: var(--blue); }
+.base-btn.sel-G { background: rgba(74,222,128,0.2); border-color: var(--accent); color: var(--accent); }
+.gi-val { font-family: var(--mono); font-size: 11px; color: var(--text3); width: 36px; text-align: right; flex-shrink: 0; }
+
+/* ---- PLAN OUTPUT ---- */
+.plan-output { margin-top: 20px; }
+.plan-step {
+  background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 8px; padding: 12px 16px; margin-bottom: 8px;
+}
+.plan-step-head { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; }
+.plan-loc { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent); }
+.plan-gene { font-family: var(--mono); font-size: 11px; color: var(--text); }
+.plan-detail { font-size: 12px; color: var(--text2); }
+.plan-base { font-family: var(--mono); font-weight: 700; }
+.plan-base.A { color: var(--yellow); }
+.plan-base.T { color: var(--red); }
+.plan-base.C { color: var(--blue); }
+.plan-base.G { color: var(--accent); }
+
+/* ---- SUMMARY / RACING ---- */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
+.stat-card {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px;
+}
+.stat-label { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-bottom: 4px; }
+.stat-value { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--text); }
+.stat-value.good { color: var(--accent); }
+.stat-value.warn { color: var(--yellow); }
+.stat-value.bad { color: var(--red); }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ---- MISC ---- */
+.btn {
+  background: var(--accent); color: #0d0f0e; font-family: var(--mono); font-size: 12px;
+  font-weight: 700; letter-spacing: 0.06em; border: none; border-radius: 6px;
+  padding: 9px 18px; cursor: pointer; transition: background 0.12s;
+}
+.btn:hover { background: var(--accent2); }
+.btn-ghost {
+  background: transparent; color: var(--text2); font-family: var(--mono); font-size: 11px;
+  font-weight: 700; letter-spacing: 0.05em; border: 1px solid var(--border2); border-radius: 6px;
+  padding: 7px 14px; cursor: pointer; transition: all 0.12s;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 4px; letter-spacing: 0.05em;
+}
+.badge-green { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(74,222,128,0.3); }
+.badge-red { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+.badge-yellow { background: rgba(251,191,36,0.1); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+.empty-state { text-align: center; padding: 40px; color: var(--text3); font-family: var(--mono); font-size: 12px; }
+.tip { background: var(--accent-dim2); border: 1px solid rgba(74,222,128,0.15); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--text2); margin-bottom: 16px; }
+.tip strong { color: var(--accent); }
+.color-legend { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.color-legend span { font-family: var(--mono); font-size: 11px; display: flex; align-items: center; gap: 5px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-A { background: var(--yellow); }
+.dot-T { background: var(--red); }
+.dot-C { background: var(--blue); }
+.dot-G { background: var(--accent); }
+
+.scrollbar::-webkit-scrollbar { width: 6px; }
+.scrollbar::-webkit-scrollbar-track { background: var(--surface); }
+.scrollbar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } .main { padding: 16px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">H</div>
+  <h1>HORSEY // GENOME CALCULATOR</h1>
+  <span>v1.0 · All 20 helices · 240 genes</span>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('analyzer')">ANALYZER</button>
+  <button class="tab" onclick="switchTab('planner')">CRISPR PLANNER</button>
+  <button class="tab" onclick="switchTab('racing')">RACING OPTIMIZER</button>
+</div>
+
+<div class="main">
+
+<!-- ===== ANALYZER ===== -->
+<div id="panel-analyzer" class="panel active">
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Genome Analyzer — read trait values from bases</div>
+    <div class="tip"><strong>How to use:</strong> Set each base (both strands, A/T/C/G) to match your horse's DNA. Trait values update instantly. Both strands set to the same base = full effect.</div>
+    <div class="color-legend">
+      <span><span class="dot dot-A"></span> A = Yellow</span>
+      <span><span class="dot dot-T"></span> T = Red</span>
+      <span><span class="dot dot-C"></span> C = Blue</span>
+      <span><span class="dot dot-G"></span> G = Green</span>
+    </div>
+    <div class="flex-row">
+      <button class="btn" onclick="resetAll()">RESET ALL</button>
+      <button class="btn-ghost" onclick="randomizeAll()">RANDOMIZE</button>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:auto;" id="gene-count-label"></span>
+    </div>
+  </div>
+  <div class="helix-grid" id="helix-grid"></div>
+</div>
+
+<!-- ===== PLANNER ===== -->
+<div id="panel-planner" class="panel">
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">Gene Selector — search &amp; target</div>
+        <input class="search-bar" type="text" id="gene-search" placeholder="Search gene name..." oninput="filterGenes()">
+        <div class="gene-list scrollbar" id="gene-list-el"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">CRISPR Edit Plan</div>
+        <div id="plan-output">
+          <div class="empty-state">Select genes on the left and choose target bases to generate your edit plan.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RACING ===== -->
+<div id="panel-racing" class="panel">
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Racing Optimizer — key performance genes</div>
+    <div class="tip">Set bases for the most impactful racing genes. The score below reflects how well your choices are optimized for speed.</div>
+    <div class="stat-grid" id="racing-stats"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Racing Gene Controls</div>
+    <div id="racing-controls"></div>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">Optimal Racing Genome — recommended bases</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">
+      Apply these changes in the CRISPR Lab for maximum race performance. Edit both strands to the same base.
+    </div>
+    <div id="racing-plan"></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ============================================================
+//  GENOME DATA
+// ============================================================
+const GENOME = [
+  { h:0, name:"Body Structure", genes:[
+    {p:0,n:"BONES",A:14,T:0,C:-14,G:0},
+    {p:1,n:"BONES2",A:0,T:0,C:-16,G:16},
+    {p:2,n:"OSTODERM",A:0,T:1,C:2,G:1},
+    {p:3,n:"OSTO_SIZE",A:15,T:30,C:45,G:30},
+    {p:4,n:"GIANT_DWARF",A:66,T:100,C:133,G:100},
+    {p:5,n:"TAIL_BOTTOM",A:0,T:1,C:0,G:0},
+    {p:6,n:"LEG_STRETCH2",A:0,T:-16,C:16,G:0},
+    {p:7,n:"ARM_STRETCH2",A:16,T:0,C:-16,G:0},
+    {p:8,n:"HEAD_THICK_SKULL",A:0,T:0,C:0,G:20},
+    {p:9,n:"NECK_STIFF",A:1,T:0,C:0,G:1}
+  ]},
+  { h:1, name:"Gut, Behavior, Pattern", genes:[
+    {p:0,n:"GUT",A:45,T:0,C:0,G:25},
+    {p:1,n:"GUT_IS_UDDER",A:0,T:2,C:1,G:0},
+    {p:2,n:"DERRIERE",A:10,T:40,C:0,G:70},
+    {p:3,n:"LEG_IS_CIRCLE",A:0,T:1,C:0,G:0},
+    {p:4,n:"FOOT_IS_CIRCLE",A:1,T:0,C:0,G:0},
+    {p:5,n:"TONGUE",A:60,T:0,C:0,G:40},
+    {p:6,n:"TONGUE_SEGS",A:0,T:0,C:1,G:2},
+    {p:7,n:"BELLY_ALT",A:1,T:0,C:2,G:1},
+    {p:8,n:"PAT_BELLY",A:100,T:33,C:50,G:75},
+    {p:9,n:"LITTER_SIZE",A:3,T:2,C:1,G:5},
+    {p:10,n:"OLD_AGE",A:0,T:0,C:-1,G:2},
+    {p:11,n:"OMNIVORE",A:1,T:0,C:0,G:0},
+    {p:12,n:"LIMP",A:0,T:0,C:2,G:1}
+  ]},
+  { h:2, name:"Flexibility & Muscle", genes:[
+    {p:0,n:"MUSCLE_USE",A:80,T:50,C:100,G:100},
+    {p:1,n:"TAIL_STIFF",A:0,T:1,C:1,G:0},
+    {p:2,n:"LEG_FLEXIBILITY",A:50,T:20,C:40,G:30},
+    {p:3,n:"LEG_FLEX_BIAS",A:10,T:-10,C:15,G:20},
+    {p:4,n:"TAIL_FLEXIBILITY",A:45,T:90,C:15,G:135},
+    {p:5,n:"TAIL_SPEED",A:60,T:0,C:200,G:60},
+    {p:6,n:"LEG_AND_ARM_LIMP",A:0,T:0,C:1,G:0},
+    {p:7,n:"ARM_STRENGTH",A:95,T:120,C:80,G:104},
+    {p:8,n:"ARM_FLEXIBILITY",A:30,T:40,C:20,G:30},
+    {p:9,n:"ARM_FLEX_BIAS",A:0,T:10,C:20,G:15},
+    {p:10,n:"NECK_FLEXIBILITY",A:0,T:10,C:40,G:23},
+    {p:11,n:"NECK_FLEX_BIAS",A:0,T:-25,C:30,G:-8},
+    {p:12,n:"BRAIN_SPASTIC",A:2,T:0,C:0,G:1}
+  ]},
+  { h:3, name:"Joints & Angles", genes:[
+    {p:0,n:"SPLAY",A:0,T:-5,C:10,G:45},
+    {p:1,n:"LEG_IN",A:6,T:0,C:0,G:18},
+    {p:2,n:"LEG_IN2",A:0,T:1,C:0,G:13},
+    {p:3,n:"TAIL_ANGLE",A:135,T:60,C:90,G:45},
+    {p:4,n:"TAIL_JOINT_TYPE",A:0,T:1,C:0,G:0},
+    {p:5,n:"LEG_JOINT_TYPE",A:0,T:2,C:0,G:1},
+    {p:6,n:"HAS_KNEE",A:0,T:0,C:1,G:0},
+    {p:7,n:"KNEE_MIN",A:-15,T:0,C:0,G:-90},
+    {p:8,n:"KNEE_MAX",A:90,T:20,C:20,G:45},
+    {p:9,n:"ARM_JOINT_TYPE",A:0,T:2,C:1,G:0},
+    {p:10,n:"HAS_ELBOW",A:1,T:0,C:0,G:0},
+    {p:11,n:"ELBOW_RANGE",A:10,T:90,C:30,G:30},
+    {p:12,n:"NECK_JOINT_TYPE",A:0,T:1,C:2,G:0},
+    {p:13,n:"HEAD_JOINTED",A:1,T:0,C:0,G:0},
+    {p:14,n:"STIFF_JOINTS",A:50,T:0,C:0,G:18}
+  ]},
+  { h:4, name:"Limb Tags & Counts", genes:[
+    {p:0,n:"LEG_TAG",A:1,T:2,C:3,G:4},
+    {p:1,n:"LEG_HAS_FOOT",A:1,T:0,C:0,G:1},
+    {p:2,n:"LEG_COUNT",A:7,T:2,C:1,G:1},
+    {p:3,n:"LEG_THRUST_BACK",A:2,T:0,C:1,G:0},
+    {p:4,n:"ARM_TAG",A:4,T:2,C:3,G:1},
+    {p:5,n:"ARM_HAS_HAND",A:0,T:1,C:1,G:0},
+    {p:6,n:"NECK_TAG",A:4,T:1,C:2,G:3},
+    {p:7,n:"NECK_SLOUCH",A:0,T:50,C:0,G:20},
+    {p:8,n:"NECK_ONTOP",A:20,T:50,C:70,G:0},
+    {p:9,n:"BREAK_FORCE",A:50,T:0,C:30,G:0},
+    {p:10,n:"EAR_X",A:100,T:0,C:0,G:50}
+  ]},
+  { h:5, name:"Locomotion Type & Upper Arms", genes:[
+    {p:0,n:"QUADRUPED",A:1,T:0,C:1,G:0},
+    {p:1,n:"BIPED",A:1,T:0,C:1,G:0},
+    {p:2,n:"UPARM_TAG",A:0,T:2,C:1,G:4},
+    {p:3,n:"UPARM_Y",A:30,T:10,C:30,G:50},
+    {p:4,n:"UPARM_GOOFY",A:0,T:3,C:1,G:2},
+    {p:5,n:"ARM_FORWARD",A:40,T:0,C:-20,G:60},
+    {p:6,n:"UPARM_ANGLE",A:-30,T:-45,C:30,G:0},
+    {p:7,n:"WHITE_IS_LETHAL",A:0,T:0,C:0,G:1}
+  ]},
+  { h:6, name:"Body Size & Neck Shape", genes:[
+    {p:0,n:"ASPECT",A:150,T:250,C:310,G:200},
+    {p:1,n:"SKINNY",A:200,T:75,C:100,G:100},
+    {p:2,n:"CHEST_BIG",A:104,T:102,C:108,G:102},
+    {p:3,n:"CHEST_SMALL",A:95,T:90,C:100,G:95},
+    {p:4,n:"NECK_TYPE",A:1,T:1,C:2,G:0},
+    {p:5,n:"NECK_LENGTH",A:60,T:70,C:30,G:90},
+    {p:6,n:"NECK_GIRAFFE",A:85,T:110,C:0,G:120},
+    {p:7,n:"NECK_THICKNESS",A:80,T:120,C:95,G:110},
+    {p:8,n:"NECK_ANGLE",A:30,T:45,C:60,G:75},
+    {p:9,n:"NECK_COCK",A:20,T:-25,C:0,G:30}
+  ]},
+  { h:7, name:"Tail", genes:[
+    {p:0,n:"TAIL_TAG",A:4,T:3,C:1,G:2},
+    {p:1,n:"TAIL_EXISTS",A:1,T:2,C:0,G:1},
+    {p:2,n:"TAIL_SIZE",A:120,T:140,C:80,G:100},
+    {p:3,n:"TAIL_SHORT",A:50,T:100,C:100,G:35},
+    {p:4,n:"TAIL_ASPECT",A:20,T:20,C:30,G:10},
+    {p:5,n:"TAIL_SHAPE",A:2,T:5,C:6,G:1},
+    {p:6,n:"TAIL_SEGMENTS",A:5,T:0,C:3,G:3},
+    {p:7,n:"TAIL_WAG",A:0,T:0,C:1,G:0}
+  ]},
+  { h:8, name:"Leg & Arm Dimensions", genes:[
+    {p:0,n:"LEG_TYPE",A:2,T:1,C:0,G:1},
+    {p:1,n:"LEG_LENGTH",A:50,T:120,C:80,G:100},
+    {p:2,n:"LEG_STRETCH",A:14,T:0,C:-14,G:0},
+    {p:3,n:"LEG_SKEW",A:0,T:0,C:24,G:-16},
+    {p:4,n:"LEG_STRENGTH",A:104,T:80,C:120,G:95},
+    {p:5,n:"LEG_PENCIL",A:0,T:10,C:0,G:0},
+    {p:6,n:"ARM_TYPE",A:0,T:0,C:1,G:2},
+    {p:7,n:"ARM_LENGTH",A:80,T:50,C:120,G:25},
+    {p:8,n:"ARM_STRETCH",A:14,T:0,C:-14,G:0},
+    {p:9,n:"ARM_SKEW",A:0,T:0,C:20,G:-20},
+    {p:10,n:"ARM_NODE_SCALE",A:100,T:70,C:100,G:130}
+  ]},
+  { h:9, name:"Feet & Hands", genes:[
+    {p:0,n:"HAS_FOOT",A:0,T:1,C:1,G:0},
+    {p:1,n:"FOOT_SIZE",A:12,T:20,C:30,G:0},
+    {p:2,n:"FOOT_CLOWN",A:0,T:30,C:0,G:0},
+    {p:3,n:"FOOT_THICKNESS",A:30,T:20,C:15,G:7},
+    {p:4,n:"FOOT_TOE",A:100,T:100,C:50,G:0},
+    {p:5,n:"FOOT_BACKWARDS",A:0,T:2,C:0,G:1},
+    {p:6,n:"HAS_HAND",A:1,T:0,C:0,G:1},
+    {p:7,n:"HAND_WIDTH",A:7,T:0,C:20,G:0},
+    {p:8,n:"HAND_LENGTH",A:15,T:20,C:20,G:30},
+    {p:9,n:"HAND_FINGER",A:50,T:100,C:0,G:0},
+    {p:10,n:"SKIN_HANDS",A:0,T:2,C:1,G:0}
+  ]},
+  { h:10, name:"Head Shape", genes:[
+    {p:0,n:"HEAD_SIZE",A:75,T:133,C:50,G:100},
+    {p:1,n:"HEAD_X_GROWTH",A:0,T:-5,C:5,G:10},
+    {p:2,n:"HEAD_Y_GROWTH",A:5,T:0,C:-5,G:0},
+    {p:3,n:"HEAD_ASPECT",A:250,T:200,C:175,G:300},
+    {p:4,n:"HEAD_SQUARE",A:100,T:150,C:0,G:0},
+    {p:5,n:"HEAD_HAS_BACK",A:1,T:0,C:0,G:11},
+    {p:6,n:"HEAD_GIANT",A:180,T:200,C:100,G:100},
+    {p:7,n:"HEAD_SHRUNK",A:70,T:50,C:100,G:100},
+    {p:8,n:"HEAD_CHIMERA",A:0,T:1,C:0,G:0},
+    {p:9,n:"EYEBOX_X",A:33,T:15,C:50,G:0},
+    {p:10,n:"EYEBOX_Y",A:-25,T:-50,C:-100,G:0},
+    {p:11,n:"EYEBOX_SIZE",A:25,T:15,C:50,G:33},
+    {p:12,n:"SKIN_HEAD",A:0,T:2,C:1,G:0}
+  ]},
+  { h:11, name:"Eyes & Ears", genes:[
+    {p:0,n:"EYE_STYLE",A:2,T:1,C:1,G:0},
+    {p:1,n:"BUGEYE",A:1,T:2,C:0,G:0},
+    {p:2,n:"EYE_SIZE",A:50,T:125,C:75,G:50},
+    {p:3,n:"PUPIL_SIZE",A:80,T:40,C:66,G:40},
+    {p:4,n:"HAS_PUPIL",A:1,T:0,C:0,G:0},
+    {p:5,n:"BROW_SIZE",A:150,T:125,C:0,G:0},
+    {p:6,n:"BROW_SLANT",A:15,T:-15,C:0,G:0},
+    {p:7,n:"EYE_HUE",A:198,T:153,C:237,G:36},
+    {p:8,n:"EAR_STYLE",A:0,T:1,C:0,G:2},
+    {p:9,n:"EAR_SHAPE",A:4,T:2,C:2,G:1},
+    {p:10,n:"EAR_SIZE",A:40,T:20,C:30,G:10},
+    {p:11,n:"EAR_ASPECT",A:100,T:250,C:300,G:100},
+    {p:12,n:"EAR_SLANT",A:100,T:-33,C:50,G:0},
+    {p:13,n:"EAR_INTERIOR",A:0,T:5,C:0,G:0},
+    {p:14,n:"EAR_FLOP",A:60,T:30,C:0,G:200}
+  ]},
+  { h:12, name:"Mouth & Nose", genes:[
+    {p:0,n:"TEETH_SHAPE",A:3,T:0,C:1,G:2},
+    {p:1,n:"HAS_MOUTH",A:1,T:1,C:1,G:0},
+    {p:2,n:"MOUTH_Y",A:50,T:100,C:70,G:84},
+    {p:3,n:"MOUTH_SIZE",A:40,T:30,C:20,G:10},
+    {p:4,n:"JAW",A:15,T:-13,C:0,G:-8},
+    {p:5,n:"TEETH_UPPER",A:0,T:0,C:0,G:1},
+    {p:6,n:"TEETH_UPPER2",A:0,T:0,C:1,G:0},
+    {p:7,n:"NOSE_STYLE",A:0,T:2,C:3,G:1},
+    {p:8,n:"NOSE_INNY",A:0,T:0,C:1,G:0},
+    {p:9,n:"NOSE_Y",A:50,T:100,C:0,G:0},
+    {p:10,n:"NOSE_SIZE",A:10,T:100,C:20,G:5},
+    {p:11,n:"NOSE_INTERIOR",A:0,T:100,C:0,G:50},
+    {p:12,n:"FLU_IMMUNITY",A:0,T:0,C:0,G:1}
+  ]},
+  { h:13, name:"Antlers & Hat Pom", genes:[
+    {p:0,n:"HAS_ANTLERS",A:1,T:0,C:1,G:1},
+    {p:1,n:"ANTLER_X",A:2,T:1,C:1,G:0},
+    {p:2,n:"ANTLER_W",A:12,T:15,C:8,G:12},
+    {p:3,n:"ANTLER_H",A:45,T:65,C:100,G:25},
+    {p:4,n:"ANTLER_TAPER",A:50,T:100,C:0,G:100},
+    {p:5,n:"ANTLER_POM",A:100,T:150,C:0,G:200},
+    {p:6,n:"ANTLER_COLOR",A:2,T:3,C:8,G:1},
+    {p:7,n:"POM_COLOR",A:17,T:1,C:0,G:2},
+    {p:8,n:"POM_USECOLOR",A:0,T:0,C:0,G:1},
+    {p:9,n:"HAT_POM",A:50,T:0,C:0,G:25},
+    {p:10,n:"HAT_POM_IS_LID",A:1,T:0,C:0,G:0}
+  ]},
+  { h:14, name:"Antler Detail", genes:[
+    {p:0,n:"ANTLER_REC",A:1,T:2,C:0,G:3},
+    {p:1,n:"ANTLER_REC2",A:0,T:1,C:2,G:3},
+    {p:2,n:"ANTLER_FLIP",A:0,T:1,C:0,G:0},
+    {p:3,n:"ANTLER_MOD",A:1,T:3,C:2,G:3},
+    {p:4,n:"ANTLER_SCALEH",A:100,T:40,C:75,G:100},
+    {p:5,n:"ANTLER_SCALEW",A:100,T:100,C:75,G:50},
+    {p:6,n:"ANTLER_ANGLE",A:-45,T:-25,C:25,G:45},
+    {p:7,n:"ANTLER_ANGLE2",A:45,T:90,C:-45,G:-90},
+    {p:8,n:"ANTLER_ANGLE_RAND",A:45,T:5,C:15,G:0},
+    {p:9,n:"ANTLER_T1",A:40,T:25,C:0,G:100},
+    {p:10,n:"ANTLER_T2",A:100,T:40,C:25,G:0}
+  ]},
+  { h:15, name:"Hat", genes:[
+    {p:0,n:"HAT_EXISTS",A:1,T:0,C:0,G:0},
+    {p:1,n:"HAT_SIZE",A:40,T:100,C:60,G:20},
+    {p:2,n:"HAT_RAKE",A:0,T:-15,C:0,G:25},
+    {p:3,n:"HAT_ASPECT",A:100,T:300,C:100,G:200},
+    {p:4,n:"HAT_TAPER",A:0,T:0,C:50,G:100},
+    {p:5,n:"HAT_CLONE",A:0,T:66,C:0,G:33},
+    {p:6,n:"HAT_BACK_SCALE",A:0,T:100,C:100,G:60},
+    {p:7,n:"HAT_FRONT_SCALE",A:100,T:60,C:100,G:0},
+    {p:8,n:"HAT_BACK_ANGLE",A:45,T:60,C:90,G:120},
+    {p:9,n:"HAT_FRONT_ANGLE",A:-120,T:-60,C:-45,G:-90},
+    {p:10,n:"HAT_ANGLE_RAND",A:15,T:0,C:15,G:45},
+    {p:11,n:"HAT_FLIP",A:1,T:0,C:0,G:0},
+    {p:12,n:"HAT_T",A:40,T:100,C:0,G:0}
+  ]},
+  { h:16, name:"Color", genes:[
+    {p:0,n:"BASE_BROWN",A:0,T:1,C:2,G:0},
+    {p:1,n:"BASE_BLACK",A:1,T:0,C:0,G:1},
+    {p:2,n:"BASE_RED",A:3,T:1,C:2,G:0},
+    {p:3,n:"BASE_GREEN",A:2,T:0,C:1,G:3},
+    {p:4,n:"GREEN_KNOCKOUT",A:1,T:0,C:0,G:0},
+    {p:5,n:"BASE_CREAM",A:0,T:0,C:0,G:100},
+    {p:6,n:"ALT_BLUE",A:1,T:0,C:3,G:2},
+    {p:7,n:"SPOT_YELLOW",A:1,T:0,C:0,G:1},
+    {p:8,n:"SKIN_HUE",A:2,T:3,C:0,G:1},
+    {p:9,n:"SKIN_HUE2",A:1,T:0,C:3,G:2},
+    {p:10,n:"SWAP_BASE_SPOT",A:0,T:1,C:0,G:1},
+    {p:11,n:"SWAP_ALT_SPOT",A:1,T:0,C:0,G:1},
+    {p:12,n:"WHITE",A:0,T:1,C:0,G:0},
+    {p:13,n:"NOSE_HUE",A:1,T:3,C:2,G:0},
+    {p:14,n:"HOOF_COLOR",A:2,T:1,C:0,G:0}
+  ]},
+  { h:17, name:"Pattern & Coat", genes:[
+    {p:0,n:"AGOUTI",A:1,T:0,C:1,G:0},
+    {p:1,n:"FOOT_IS_HOOF",A:1,T:1,C:0,G:0},
+    {p:2,n:"COON_EYE",A:2,T:0,C:1,G:0},
+    {p:3,n:"EAR_COMP",A:1,T:0,C:2,G:0},
+    {p:4,n:"TAIL_ALT",A:0,T:2,C:0,G:1},
+    {p:5,n:"PAT_SPLIT",A:65,T:0,C:0,G:100},
+    {p:6,n:"PAT_STRIPE",A:51,T:90,C:0,G:0},
+    {p:7,n:"PAT_SPOT",A:0,T:0,C:90,G:51},
+    {p:8,n:"PAT_PERLIN",A:60,T:0,C:100,G:0},
+    {p:9,n:"PAT_PERLIN2",A:0,T:100,C:60,G:0},
+    {p:10,n:"PAT_PERLIN_SIZE",A:2,T:4,C:4,G:8}
+  ]},
+  { h:18, name:"Speed & Locomotion Control", genes:[
+    {p:0,n:"NARCOLEPSY",A:0,T:0,C:0,G:1},
+    {p:1,n:"SPEED_FACTOR",A:50,T:133,C:30,G:100},
+    {p:2,n:"NECK_SPEED",A:60,T:10,C:50,G:25},
+    {p:3,n:"RAMPAGE",A:0,T:0,C:1,G:0},
+    {p:4,n:"SPINAL_LOCO",A:2,T:1,C:0,G:0},
+    {p:5,n:"HIGH_INTELLECT",A:0,T:1,C:0,G:1},
+    {p:6,n:"L_LEG_SIGNAL",A:2,T:1,C:1,G:1},
+    {p:7,n:"L_ARM_SIGNAL",A:2,T:1,C:2,G:2},
+    {p:8,n:"L_TAIL_SIGNAL",A:3,T:2,C:1,G:4},
+    {p:9,n:"L_NECK_SIGNAL",A:2,T:4,C:3,G:1},
+    {p:10,n:"LOCO_SYNC",A:0,T:1,C:0,G:0}
+  ]},
+  { h:19, name:"Locomotion Signals", genes:[
+    {p:0,n:"L_LEG_FTOB_REACT",A:1,T:1,C:2,G:3},
+    {p:1,n:"L_LEG_FTOB_EVENT",A:1,T:2,C:4,G:3},
+    {p:2,n:"L_LEG_BTOF_REACT",A:2,T:3,C:1,G:2},
+    {p:3,n:"L_LEG_BTOF_EVENT",A:1,T:2,C:4,G:3},
+    {p:4,n:"L_ARM_FTOB_REACT",A:2,T:3,C:1,G:2},
+    {p:5,n:"L_ARM_FTOB_EVENT",A:2,T:3,C:4,G:1},
+    {p:6,n:"L_ARM_BTOF_REACT",A:2,T:1,C:3,G:1},
+    {p:7,n:"L_ARM_BTOF_EVENT",A:3,T:1,C:2,G:4},
+    {p:8,n:"L_TAIL_FTOB_REACT",A:3,T:2,C:0,G:1},
+    {p:9,n:"L_TAIL_FTOB_EVENT",A:4,T:1,C:2,G:3},
+    {p:10,n:"L_TAIL_BTOF_REACT",A:2,T:1,C:3,G:0},
+    {p:11,n:"L_TAIL_BTOF_EVENT",A:2,T:1,C:3,G:4},
+    {p:12,n:"L_NECK_FTOB_REACT",A:4,T:1,C:2,G:0},
+    {p:13,n:"L_NECK_FTOB_EVENT",A:2,T:3,C:1,G:4},
+    {p:14,n:"L_NECK_BTOF_REACT",A:4,T:0,C:1,G:2},
+    {p:15,n:"L_NECK_BTOF_EVENT",A:3,T:2,C:1,G:4}
+  ]}
+];
+
+const BASES = ['A','T','C','G'];
+// genome state: [helix][position] = {s1: base, s2: base}
+let state = {};
+
+function initState() {
+  GENOME.forEach(helix => {
+    state[helix.h] = {};
+    helix.genes.forEach(g => {
+      state[helix.h][g.p] = {s1:'A', s2:'A'};
+    });
+  });
+}
+
+function getVal(helix, gene, strand) {
+  const b = state[helix][gene][strand];
+  const gDef = GENOME[helix].genes.find(g => g.p === gene);
+  return gDef[b];
+}
+
+function getCombinedVal(h, p) {
+  const g = GENOME[h].genes.find(x => x.p === p);
+  const v1 = g[state[h][p].s1];
+  const v2 = g[state[h][p].s2];
+  return (v1 + v2) / 2;
+}
+
+// ============================================================
+//  ANALYZER — BUILD UI
+// ============================================================
+function buildAnalyzer() {
+  const grid = document.getElementById('helix-grid');
+  grid.innerHTML = '';
+  let total = 0;
+  GENOME.forEach(helix => {
+    total += helix.genes.length;
+    const card = document.createElement('div');
+    card.className = 'helix-card';
+    card.innerHTML = `
+      <div class="helix-header">
+        <span class="helix-num">H${helix.h}</span>
+        <span class="helix-name">${helix.name}</span>
+      </div>
+      <div class="helix-body">
+        <div class="strand-row">
+          <span class="strand-label" style="width:22px"></span>
+          <span class="strand-label" style="flex:1"></span>
+          <span class="strand-label" style="width:42px;text-align:center">STR 1</span>
+          <span class="strand-label" style="width:42px;text-align:center">STR 2</span>
+          <span class="strand-label" style="width:44px;text-align:right">VAL</span>
+        </div>
+        ${helix.genes.map(g => `
+          <div class="gene-row" id="row-${helix.h}-${g.p}">
+            <span class="gene-pos">${g.p}</span>
+            <span class="gene-name" title="${g.n}">${g.n}</span>
+            <select class="base-select base-${state[helix.h][g.p].s1}" id="s1-${helix.h}-${g.p}"
+              onchange="setBase(${helix.h},${g.p},'s1',this.value)">
+              ${BASES.map(b=>`<option value="${b}" ${state[helix.h][g.p].s1===b?'selected':''}>${b}</option>`).join('')}
+            </select>
+            <select class="base-select base-${state[helix.h][g.p].s2}" id="s2-${helix.h}-${g.p}"
+              onchange="setBase(${helix.h},${g.p},'s2',this.value)">
+              ${BASES.map(b=>`<option value="${b}" ${state[helix.h][g.p].s2===b?'selected':''}>${b}</option>`).join('')}
+            </select>
+            <span class="gene-val" id="val-${helix.h}-${g.p}">${formatVal(getCombinedVal(helix.h, g.p))}</span>
+          </div>
+        `).join('')}
+      </div>`;
+    grid.appendChild(card);
+  });
+  document.getElementById('gene-count-label').textContent = `${total} genes across 20 helices`;
+}
+
+function formatVal(v) {
+  if (Number.isInteger(v)) return v;
+  return v % 1 === 0 ? v : v.toFixed(1);
+}
+
+function setBase(h, p, strand, val) {
+  state[h][p][strand] = val;
+  const sel = document.getElementById(`${strand}-${h}-${p}`);
+  sel.className = `base-select base-${val}`;
+  const valEl = document.getElementById(`val-${h}-${p}`);
+  valEl.textContent = formatVal(getCombinedVal(h, p));
+  updateRacingStats();
+  updatePlan();
+}
+
+function resetAll() {
+  GENOME.forEach(helix => {
+    helix.genes.forEach(g => { state[helix.h][g.p] = {s1:'A', s2:'A'}; });
+  });
+  buildAnalyzer();
+  buildPlannerList();
+  updateRacingStats();
+  updatePlan();
+  buildRacingControls();
+}
+
+function randomizeAll() {
+  GENOME.forEach(helix => {
+    helix.genes.forEach(g => {
+      state[helix.h][g.p] = {
+        s1: BASES[Math.floor(Math.random()*4)],
+        s2: BASES[Math.floor(Math.random()*4)]
+      };
+    });
+  });
+  buildAnalyzer();
+  buildPlannerList();
+  updateRacingStats();
+  updatePlan();
+  buildRacingControls();
+}
+
+// ============================================================
+//  PLANNER
+// ============================================================
+let plannerSelections = {}; // key: "h-p" -> {base, gene}
+
+function buildPlannerList() {
+  const el = document.getElementById('gene-list-el');
+  const q = (document.getElementById('gene-search')||{value:''}).value.toLowerCase();
+  el.innerHTML = '';
+  GENOME.forEach(helix => {
+    helix.genes.forEach(g => {
+      if (q && !g.n.toLowerCase().includes(q) && !`h${helix.h}`.includes(q)) return;
+      const key = `${helix.h}-${g.p}`;
+      const sel = plannerSelections[key];
+      const div = document.createElement('div');
+      div.className = `gene-item${sel ? ' selected' : ''}`;
+      div.innerHTML = `
+        <span class="gi-helix">H${helix.h} P${g.p}</span>
+        <span class="gi-name">${g.n}</span>
+        <div class="gi-options">
+          ${BASES.map(b => `
+            <button class="base-btn ${sel && sel.base===b ? 'sel-'+b : ''}"
+              onclick="plannerSelect(${helix.h},${g.p},'${b}',event)"
+              title="${b} = ${g[b]}">${b}</button>
+          `).join('')}
+        </div>
+        <span class="gi-val">${sel ? formatVal(g[sel.base]) : '—'}</span>`;
+      el.appendChild(div);
+    });
+  });
+}
+
+function plannerSelect(h, p, base, evt) {
+  evt.stopPropagation();
+  const key = `${h}-${p}`;
+  if (plannerSelections[key] && plannerSelections[key].base === base) {
+    delete plannerSelections[key];
+  } else {
+    const helix = GENOME[h];
+    const g = helix.genes.find(x => x.p === p);
+    plannerSelections[key] = {base, gene: g, h, p, helixName: helix.name};
+  }
+  buildPlannerList();
+  updatePlan();
+}
+
+function filterGenes() { buildPlannerList(); }
+
+function updatePlan() {
+  const out = document.getElementById('plan-output');
+  const keys = Object.keys(plannerSelections);
+  if (!keys.length) {
+    out.innerHTML = '<div class="empty-state">Select genes on the left and choose target bases to generate your edit plan.</div>';
+    return;
+  }
+  const sorted = keys.sort((a,b) => {
+    const [ah, ap] = a.split('-').map(Number);
+    const [bh, bp] = b.split('-').map(Number);
+    return ah !== bh ? ah - bh : ap - bp;
+  });
+  out.innerHTML = sorted.map(k => {
+    const {base, gene, h, p, helixName} = plannerSelections[k];
+    const cur1 = state[h][p].s1;
+    const cur2 = state[h][p].s2;
+    const noChange = cur1 === base && cur2 === base;
+    return `
+    <div class="plan-step">
+      <div class="plan-step-head">
+        <span class="plan-loc">H${h} · P${p}</span>
+        <span class="plan-gene">${gene.n}</span>
+        ${noChange ? '<span class="badge badge-green" style="margin-left:auto">NO CHANGE NEEDED</span>' : ''}
+      </div>
+      <div class="plan-detail">
+        Helix <strong>${h}</strong> (${helixName}) · Position <strong>${p}</strong><br>
+        Current: Strand 1 = <span class="plan-base ${cur1}">${cur1}</span>, Strand 2 = <span class="plan-base ${cur2}">${cur2}</span>
+        → Target: both strands = <span class="plan-base ${base}">${base}</span><br>
+        Trait value at target: <strong>${formatVal(gene[base])}</strong>
+        (A=${gene.A}, T=${gene.T}, C=${gene.C}, G=${gene.G})
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+//  RACING OPTIMIZER
+// ============================================================
+const RACING_GENES = [
+  {h:18, p:0, n:'NARCOLEPSY', note:'Keep at 0 — avoid G', best:'A', worst:'G'},
+  {h:18, p:1, n:'SPEED_FACTOR', note:'Max value 133 = T', best:'T', worst:'C'},
+  {h:18, p:4, n:'SPINAL_LOCO', note:'Max value 2 = A', best:'A', worst:'C'},
+  {h:18, p:10, n:'LOCO_SYNC', note:'Enable with T', best:'T', worst:'A'},
+  {h:8, p:4, n:'LEG_STRENGTH', note:'Max value 120 = C', best:'C', worst:'T'},
+  {h:8, p:1, n:'LEG_LENGTH', note:'Max value 120 = T', best:'T', worst:'A'},
+  {h:4, p:9, n:'BREAK_FORCE', note:'Min value 0 = T or G', best:'T', worst:'A'},
+];
+
+function buildRacingControls() {
+  const el = document.getElementById('racing-controls');
+  el.innerHTML = RACING_GENES.map(rg => {
+    const g = GENOME[rg.h].genes.find(x => x.p === rg.p);
+    const cur = state[rg.h][rg.p];
+    return `
+    <div class="gene-row" style="padding:8px 0;gap:10px;align-items:center;">
+      <span class="gene-pos" style="width:44px;font-size:10px;color:var(--text3);">H${rg.h}·P${rg.p}</span>
+      <span class="gene-name" style="font-family:var(--mono);font-size:12px;font-weight:700;">${rg.n}</span>
+      <span style="font-size:11px;color:var(--text3);flex:1;">${rg.note}</span>
+      <div style="display:flex;gap:4px;">
+        ${BASES.map(b => `
+          <button class="base-btn ${cur.s1===b&&cur.s2===b?'sel-'+b:''}"
+            onclick="setRacingBase(${rg.h},${rg.p},'${b}')">${b}=${formatVal(g[b])}</button>
+        `).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  updateRacingStats();
+}
+
+function setRacingBase(h, p, base) {
+  state[h][p] = {s1: base, s2: base};
+  // sync to analyzer
+  ['s1','s2'].forEach(s => {
+    const sel = document.getElementById(`${s}-${h}-${p}`);
+    if (sel) { sel.value = base; sel.className = `base-select base-${base}`; }
+  });
+  const valEl = document.getElementById(`val-${h}-${p}`);
+  if (valEl) valEl.textContent = formatVal(getCombinedVal(h, p));
+  buildRacingControls();
+  updatePlan();
+}
+
+function updateRacingStats() {
+  const sf = getCombinedVal(18, 1);
+  const ll = getCombinedVal(8, 1);
+  const ls = getCombinedVal(8, 4);
+  const sl = getCombinedVal(18, 4);
+  const bf = getCombinedVal(4, 9);
+  const narc = getCombinedVal(18, 0);
+  const sync = getCombinedVal(18, 10);
+  const score = Math.round(
+    (sf/133)*40 + (ll/120)*20 + (ls/120)*15 + (sl/2)*10 +
+    (bf===0?10:bf<=15?5:0) + (narc===0?5:0) + (sync>0?0:0)
+  );
+  const el = document.getElementById('racing-stats');
+  el.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">OVERALL SCORE</div>
+      <div class="stat-value ${score>=90?'good':score>=60?'warn':'bad'}">${score}<span style="font-size:12px;color:var(--text3)">/100</span></div>
+      <div class="stat-sub">Racing optimization</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">SPEED FACTOR</div>
+      <div class="stat-value ${sf>=133?'good':sf>=80?'warn':'bad'}">${formatVal(sf)}</div>
+      <div class="stat-sub">Max: 133 (T)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">LEG LENGTH</div>
+      <div class="stat-value ${ll>=120?'good':ll>=80?'warn':'bad'}">${formatVal(ll)}</div>
+      <div class="stat-sub">Max: 120 (T)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">LEG STRENGTH</div>
+      <div class="stat-value ${ls>=120?'good':ls>=95?'warn':'bad'}">${formatVal(ls)}</div>
+      <div class="stat-sub">Max: 120 (C)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">SPINAL LOCO</div>
+      <div class="stat-value ${sl>=2?'good':sl>=1?'warn':'bad'}">${formatVal(sl)}</div>
+      <div class="stat-sub">Max: 2 (A)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">NARCOLEPSY</div>
+      <div class="stat-value ${narc===0?'good':'bad'}">${narc===0?'SAFE':'RISK'}</div>
+      <div class="stat-sub">${narc===0?'0 — no sleep':'Keep A/T/C'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">BREAK FORCE</div>
+      <div class="stat-value ${bf===0?'good':bf<=15?'warn':'bad'}">${formatVal(bf)}</div>
+      <div class="stat-sub">Min: 0 (T or G)</div>
+    </div>`;
+
+  // racing plan
+  const planEl = document.getElementById('racing-plan');
+  planEl.innerHTML = RACING_GENES.map(rg => {
+    const g = GENOME[rg.h].genes.find(x => x.p === rg.p);
+    const cur = state[rg.h][rg.p];
+    const already = cur.s1 === rg.best && cur.s2 === rg.best;
+    return `
+    <div class="plan-step" style="${already?'border-left-color:var(--accent)':'border-left-color:var(--yellow)'}">
+      <div class="plan-step-head">
+        <span class="plan-loc">H${rg.h} · P${rg.p}</span>
+        <span class="plan-gene">${rg.n}</span>
+        ${already ? '<span class="badge badge-green" style="margin-left:auto">OPTIMAL</span>' : '<span class="badge badge-yellow" style="margin-left:auto">EDIT NEEDED</span>'}
+      </div>
+      <div class="plan-detail">
+        Set both strands to <span class="plan-base ${rg.best}">${rg.best}</span>
+        → value = <strong>${formatVal(g[rg.best])}</strong> · ${rg.note}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+//  TAB SWITCHING
+// ============================================================
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['analyzer','planner','racing'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+initState();
+buildAnalyzer();
+buildPlannerList();
+buildRacingControls();
+</script>
+</body>
+</html>
