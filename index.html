@@ -1025,13 +1025,16 @@ async function runScan() {
     `H${h.h} (${h.name}): ${h.genes.map(g=>`P${g.p}=${g.n}`).join(', ')}`
   ).join('\n');
 
-  const prompt = `You are reading a screenshot from the game "Horsey". The image shows multiple DNA helices floating in a purple void. Each helix has a number label on it (0–19) and is made of colored base tiles. Each tile has a letter printed on it.
+  const prompt = `You are reading a screenshot from the game "Horsey". The image shows multiple DNA helices floating in a purple void. Each helix has a number label on it (0–19) and is made of colored base tiles.
 
-BASE COLORS AND LETTERS:
+BASE IDENTIFICATION — USE BOTH COLOR AND LETTER:
+Each tile has a COLOR and a LETTER. Use whichever you can read. Color is often easier to read than the letter at small sizes.
 - YELLOW tile = A
 - RED tile = T
 - BLUE tile = C
 - GREEN tile = G
+
+If the letter is too small to read, USE THE COLOR of the tile instead. Color alone is sufficient to identify the base. Do not refuse to read a tile just because the letter is small — read the color.
 
 Each helix has TWO strands (two arms). Read both strands independently. The helices are X or Y shaped — each arm is a strand. Read from the CENTER of the helix outward (position 0 is closest to the center/number label, higher positions are further out along the arms).
 
@@ -1039,20 +1042,15 @@ IMPORTANT LOCATION HINTS:
 - Helix 19 is usually in the bottom-right corner of the screenshot — look carefully there even if it's hard to see. It has the most positions (16) so it will be the largest helix.
 - The left edge of the screen often has UI elements (toolbar, inventory) that can cut off helices near it — check if any helix is partially hidden there.
 
-
+HELIX REFERENCE (helix number → positions):
 ${helixRef}
 
 YOUR TASK:
 1. Find every helix visible in the image by its number label
-2. For each helix, read the base letter on each tile for BOTH strands
-3. For any helix you CANNOT read (cut off by UI, overlapping, out of frame, obscured, number not visible), add it to the "missing" array with a short reason
+2. For each helix, read EVERY tile on BOTH strands using color (and letter if readable)
+3. Only put a helix in "missing" if you truly cannot see it at all, or its number label is completely unreadable
 
-Be STRICT and CONSERVATIVE:
-- Only include a helix in "helices" if you can CLEARLY see its number label AND read most of its bases with confidence
-- Only include a position if you can clearly read the letter on the tile
-- If you are unsure about a helix or a base, put it in "missing" rather than guessing
-- Do NOT invent or hallucinate helices that you cannot clearly see
-- It is better to report fewer helices accurately than to guess and be wrong
+IMPORTANT — DO NOT be overly conservative about tile size. The tile colors (yellow/red/blue/green) are bold and distinct and CAN be read even at small sizes. Use color to determine the base when the letter is unclear. You should be able to read the vast majority of helices in a typical screenshot.
 
 Respond ONLY with a JSON object in this exact format — no other text, no markdown:
 {
@@ -1067,8 +1065,7 @@ Respond ONLY with a JSON object in this exact format — no other text, no markd
   ],
   "missing": [
     {"h": 3, "reason": "cut off by UI on left edge"},
-    {"h": 19, "reason": "not visible in screenshot"},
-    {"h": 7, "reason": "overlapping with helix 6, bases unreadable"}
+    {"h": 19, "reason": "not visible in screenshot"}
   ],
   "notes": "any other observations"
 }
