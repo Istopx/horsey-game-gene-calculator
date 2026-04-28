@@ -1015,11 +1015,6 @@ function handleFile(file) {
 }
 
 async function runScan() {
-  const key = getKey();
-  if (!key || !key.startsWith('sk-ant-')) {
-    alert('Please enter your Anthropic API key first.');
-    return;
-  }
   if (!scanImageBase64) {
     alert('Please upload a screenshot first.');
     return;
