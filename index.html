@@ -1106,9 +1106,23 @@ The missing array is REQUIRED. If all helices are readable, set missing to an em
       throw new Error(data.error?.message || data.raw || JSON.stringify(data));
     }
     const text = data.content.map(c => c.text || '').join('');
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON in response — try again');
-    const result = JSON.parse(jsonMatch[0]);
+    // Strip markdown code fences if present
+    const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in AI response — try again');
+    let result;
+    try {
+      result = JSON.parse(jsonMatch[0]);
+    } catch(parseErr) {
+      // Try to salvage partial JSON by truncating at last complete object
+      const partial = jsonMatch[0].substring(0, jsonMatch[0].lastIndexOf('},')+1) + ']}';
+      try {
+        result = JSON.parse(partial);
+        result.notes = (result.notes || '') + ' (response was truncated, some helices may be missing)';
+      } catch(e) {
+        throw new Error('AI response could not be parsed. Try again or use a smaller screenshot.');
+      }
+    }
     lastScanResult = result;
     bar.style.width = '100%';
     setTimeout(() => {
