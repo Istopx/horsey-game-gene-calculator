@@ -1047,7 +1047,12 @@ YOUR TASK:
 2. For each helix, read the base letter on each tile for BOTH strands
 3. For any helix you CANNOT read (cut off by UI, overlapping, out of frame, obscured, number not visible), add it to the "missing" array with a short reason
 
-Be strict: if you can't confidently read a helix's number label OR most of its bases, put it in missing rather than guessing.
+Be STRICT and CONSERVATIVE:
+- Only include a helix in "helices" if you can CLEARLY see its number label AND read most of its bases with confidence
+- Only include a position if you can clearly read the letter on the tile
+- If you are unsure about a helix or a base, put it in "missing" rather than guessing
+- Do NOT invent or hallucinate helices that you cannot clearly see
+- It is better to report fewer helices accurately than to guess and be wrong
 
 Respond ONLY with a JSON object in this exact format — no other text, no markdown:
 {
@@ -1071,24 +1076,21 @@ Respond ONLY with a JSON object in this exact format — no other text, no markd
 The missing array is REQUIRED. If all helices are readable, set missing to an empty array. Account for all 20 helices (0–19) between helices and missing.`;
 
   document.getElementById('scan-status').style.display = 'block';
-  document.getElementById('scan-status-text').textContent = 'Sending to AI — reading all helices...';
+  document.getElementById('scan-status-text').textContent = 'AI is thinking carefully through each helix... this may take 1–5 minutes, please wait.';
   document.getElementById('scan-btn').disabled = true;
   document.getElementById('scan-results').style.display = 'none';
 
-  // Animate progress bar
+  // Animate progress bar slowly since this takes a while
   const bar = document.getElementById('scan-progress-bar');
   bar.style.width = '0%';
-  setTimeout(() => { bar.style.width = '70%'; }, 100);
+  bar.style.transition = 'width 120s linear';
+  setTimeout(() => { bar.style.width = '85%'; }, 200);
 
   try {
     const resp = await fetch('https://horsey-proxy.vercel.app/api/scan', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 4000,
         messages: [{
           role: 'user',
           content: [
@@ -1099,13 +1101,20 @@ The missing array is REQUIRED. If all helices are readable, set missing to an em
       })
     });
 
+    bar.style.transition = 'width 0.3s';
     bar.style.width = '90%';
 
     const data = await resp.json();
     if (!resp.ok) {
       throw new Error(data.error?.message || data.raw || JSON.stringify(data));
     }
-    const text = data.content.map(c => c.text || '').join('');
+
+    // Extract only text blocks — skip thinking blocks
+    const text = (data.content || [])
+      .filter(c => c.type === 'text')
+      .map(c => c.text || '')
+      .join('');
+
     // Strip markdown code fences if present
     const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
