@@ -291,16 +291,7 @@ header span { font-family: var(--mono); font-size: 11px; color: var(--text3); ma
 <div id="panel-scanner" class="panel">
   <div class="card" style="margin-bottom:16px;">
     <div class="card-title">DNA Scanner — Full Genome AI Reader</div>
-    <div class="tip"><strong>How it works:</strong> Round up all your helices in-game, screenshot them all at once, drop it here, and the AI reads every helix number and every base in one shot — filling the entire calculator automatically.</div>
-
-    <div style="margin-bottom:16px;">
-      <label style="font-family:var(--mono);font-size:11px;color:var(--text3);display:block;margin-bottom:6px;">ANTHROPIC API KEY — needed for AI vision (session only, never stored permanently)</label>
-      <div style="display:flex;gap:8px;">
-        <input type="password" id="api-key-input" placeholder="sk-ant-..." style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:12px;border-radius:6px;padding:8px 12px;">
-        <button class="btn-ghost" onclick="saveKey()">SAVE</button>
-      </div>
-      <div id="key-status" style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:4px;"></div>
-    </div>
+    <div class="tip"><strong>How it works:</strong> Screenshot your helices all grouped together in-game, drop it here, and the AI reads every helix number and every base in one shot — filling the entire calculator automatically.</div>
 
     <div style="margin-bottom:16px;">
       <label style="font-family:var(--mono);font-size:11px;color:var(--text3);display:block;margin-bottom:6px;">FULL GENOME SCREENSHOT</label>
@@ -1095,12 +1086,10 @@ The missing array is REQUIRED. If all helices are readable, set missing to an em
   setTimeout(() => { bar.style.width = '70%'; }, 100);
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://horsey-proxy.vercel.app/api/scan', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
