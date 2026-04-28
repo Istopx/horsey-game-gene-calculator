@@ -1025,34 +1025,34 @@ async function runScan() {
     `H${h.h} (${h.name}): ${h.genes.map(g=>`P${g.p}=${g.n}`).join(', ')}`
   ).join('\n');
 
-  const prompt = `You are reading a screenshot from the game "Horsey". The image shows multiple DNA helices floating in a purple void. Each helix has a number label on it (0–19) and is made of colored base tiles.
+  const prompt = `You are reading a screenshot from the game "Horsey". The image shows multiple DNA helices floating in a purple void. Each helix has a number label on it (0–19) and is made of colored square tiles.
 
-BASE IDENTIFICATION — USE BOTH COLOR AND LETTER:
-Each tile has a COLOR and a LETTER. Use whichever you can read. Color is often easier to read than the letter at small sizes.
+HOW TO IDENTIFY BASES — COLOR IS EVERYTHING:
+Ignore the letters on the tiles entirely. Identify each base purely by the COLOR of the tile:
 - YELLOW tile = A
-- RED tile = T
+- RED/PINK tile = T
 - BLUE tile = C
 - GREEN tile = G
 
-If the letter is too small to read, USE THE COLOR of the tile instead. Color alone is sufficient to identify the base. Do not refuse to read a tile just because the letter is small — read the color.
+The background is PURPLE. The fence/grid is BROWN. Do not confuse these with tile colors. The four tile colors (yellow, red, blue, green) are very bold and saturated and easy to distinguish from each other and from the background.
 
-Each helix has TWO strands (two arms). Read both strands independently. The helices are X or Y shaped — each arm is a strand. Read from the CENTER of the helix outward (position 0 is closest to the center/number label, higher positions are further out along the arms).
+Each helix has TWO strands (two arms). The helices are X or Y shaped. Read both strands independently from the CENTER outward — position 0 is the tile closest to the number label, increasing outward.
 
 IMPORTANT LOCATION HINTS:
-- Helix 19 is usually in the bottom-right corner of the screenshot — look carefully there even if it's hard to see. It has the most positions (16) so it will be the largest helix.
-- The left edge of the screen often has UI elements (toolbar, inventory) that can cut off helices near it — check if any helix is partially hidden there.
+- Helix 19 is usually in the bottom-right corner — it is the largest helix with 16 positions per strand.
+- The left edge may have UI elements cutting off some helices.
 
-HELIX REFERENCE (helix number → positions):
-${helixRef}
+HELIX REFERENCE (how many positions each helix has):
+${GENOME.map(h => `H${h.h}: ${h.genes.length} positions`).join(', ')}
 
 YOUR TASK:
-1. Find every helix visible in the image by its number label
-2. For each helix, read EVERY tile on BOTH strands using color (and letter if readable)
-3. Only put a helix in "missing" if you truly cannot see it at all, or its number label is completely unreadable
+1. Find every helix by its number label
+2. For each helix, read the COLOR of every tile on BOTH strands
+3. Only put a helix in "missing" if it is genuinely not visible or its number is unreadable
 
-IMPORTANT — DO NOT be overly conservative about tile size. The tile colors (yellow/red/blue/green) are bold and distinct and CAN be read even at small sizes. Use color to determine the base when the letter is unclear. You should be able to read the vast majority of helices in a typical screenshot.
+You MUST attempt to read every helix you can see. Do not refuse based on tile size — the colors are bold and clearly distinguishable.
 
-Respond ONLY with a JSON object in this exact format — no other text, no markdown:
+Respond ONLY with valid JSON, no markdown, no explanation:
 {
   "helices": [
     {
@@ -1064,13 +1064,12 @@ Respond ONLY with a JSON object in this exact format — no other text, no markd
     }
   ],
   "missing": [
-    {"h": 3, "reason": "cut off by UI on left edge"},
-    {"h": 19, "reason": "not visible in screenshot"}
+    {"h": 3, "reason": "not visible in screenshot"}
   ],
-  "notes": "any other observations"
+  "notes": "any observations"
 }
 
-The missing array is REQUIRED. If all helices are readable, set missing to an empty array. Account for all 20 helices (0–19) between helices and missing.`;
+Account for all 20 helices (0–19) between helices and missing.`;
 
   document.getElementById('scan-status').style.display = 'block';
   document.getElementById('scan-status-text').textContent = 'AI is thinking carefully through each helix... this may take 1–5 minutes, please wait.';
