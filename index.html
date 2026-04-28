@@ -1103,7 +1103,7 @@ The missing array is REQUIRED. If all helices are readable, set missing to an em
 
     const data = await resp.json();
     if (!resp.ok) {
-      throw new Error(data.error?.message || JSON.stringify(data));
+      throw new Error(data.error?.message || data.raw || JSON.stringify(data));
     }
     const text = data.content.map(c => c.text || '').join('');
     const jsonMatch = text.match(/\{[\s\S]*\}/);
