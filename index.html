@@ -1027,30 +1027,50 @@ async function runScan() {
 
   const prompt = `You are reading a screenshot from the game "Horsey". The image shows multiple DNA helices floating in a purple void. Each helix has a number label on it (0–19) and is made of colored square tiles.
 
-HOW TO IDENTIFY BASES — COLOR IS EVERYTHING:
-Ignore the letters on the tiles entirely. Identify each base purely by the COLOR of the tile:
+HOW TO IDENTIFY BASES — USE COLOR:
+Identify each base by the COLOR of the tile:
 - YELLOW tile = A
 - RED/PINK tile = T
 - BLUE tile = C
 - GREEN tile = G
 
-The background is PURPLE. The fence/grid is BROWN. Do not confuse these with tile colors. The four tile colors (yellow, red, blue, green) are very bold and saturated and easy to distinguish from each other and from the background.
+The background is PURPLE. The fence/grid is BROWN. Do not confuse these with tile colors.
 
-Each helix has TWO strands (two arms). The helices are X or Y shaped. Read both strands independently from the CENTER outward — position 0 is the tile closest to the number label, increasing outward.
+CRITICAL — HOW TO READ A HELIX:
+Each helix is X-shaped or Y-shaped with TWO strands. Each strand runs continuously from the TOP TIP all the way DOWN through the center and out the BOTTOM. Like this:
+
+  S1_tip(p0)     S2_tip(p0)
+       \\             /
+        \\           /
+         \\         /
+          [center/label]
+         /         \\
+        /           \\
+  S1_continues    S2_continues
+  (p1,p2,p3...)   (p1,p2,p3...)
+
+- p0 is the OUTERMOST TIP at the TOP of each strand arm
+- Positions INCREASE as you move DOWN through the helix
+- Each strand goes: top tip → center → bottom tip
+- Read each strand from TOP to BOTTOM
+- The number label is in the CENTER of the helix, NOT at p0
+- Do NOT read outward from the center — read downward from each top tip
+
+So for a complete helix you read:
+- Strand 1: start at top-left tip (p0), go down through center, continue to bottom-right tip
+- Strand 2: start at top-right tip (p0), go down through center, continue to bottom-left tip
+
+HELIX REFERENCE (how many positions each helix has per strand):
+${GENOME.map(h => `H${h.h}: ${h.genes.length} positions`).join(', ')}
 
 IMPORTANT LOCATION HINTS:
 - Helix 19 is usually in the bottom-right corner — it is the largest helix with 16 positions per strand.
 - The left edge may have UI elements cutting off some helices.
 
-HELIX REFERENCE (how many positions each helix has):
-${GENOME.map(h => `H${h.h}: ${h.genes.length} positions`).join(', ')}
-
 YOUR TASK:
 1. Find every helix by its number label
-2. For each helix, read the COLOR of every tile on BOTH strands
+2. For each helix, read BOTH strands top-to-bottom, starting at the outermost tip of each arm (p0) going down through the center
 3. Only put a helix in "missing" if it is genuinely not visible or its number is unreadable
-
-You MUST attempt to read every helix you can see. Do not refuse based on tile size — the colors are bold and clearly distinguishable.
 
 Respond ONLY with valid JSON, no markdown, no explanation:
 {
