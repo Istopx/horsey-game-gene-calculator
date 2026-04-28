@@ -1004,12 +1004,61 @@ function handleFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const dataUrl = e.target.result;
-    scanImageBase64 = dataUrl.split(',')[1];
-    scanImageType = file.type;
-    document.getElementById('preview-img').src = dataUrl;
-    document.getElementById('scan-preview').style.display = 'block';
-    document.getElementById('scan-results').style.display = 'none';
-    lastScanResult = null;
+    const img = new Image();
+    img.onload = () => {
+      // Upscale image 2x and boost color saturation for better AI reading
+      const scale = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+
+      // Draw upscaled with pixelated rendering to keep crisp tile edges
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // Boost color saturation to make tile colors more distinct
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i+1], b = data[i+2];
+        // Convert to HSL, boost saturation, convert back
+        const max = Math.max(r,g,b)/255, min = Math.min(r,g,b)/255;
+        const l = (max+min)/2;
+        if (max !== min) {
+          const s = l > 0.5 ? (max-min)/(2-max-min) : (max-min)/(max+min);
+          const boostedS = Math.min(1, s * 1.5); // 50% saturation boost
+          const h = max === r/255 ? (g/255-b/255)/(max-min) :
+                    max === g/255 ? 2+(b/255-r/255)/(max-min) :
+                    4+(r/255-g/255)/(max-min);
+          const hue = ((h * 60) + 360) % 360;
+          const c = (1 - Math.abs(2*l-1)) * boostedS;
+          const x = c * (1 - Math.abs((hue/60)%2 - 1));
+          const m = l - c/2;
+          let nr,ng,nb;
+          if (hue<60){nr=c;ng=x;nb=0;}
+          else if(hue<120){nr=x;ng=c;nb=0;}
+          else if(hue<180){nr=0;ng=c;nb=x;}
+          else if(hue<240){nr=0;ng=x;nb=c;}
+          else if(hue<300){nr=x;ng=0;nb=c;}
+          else{nr=c;ng=0;nb=x;}
+          data[i]   = Math.round((nr+m)*255);
+          data[i+1] = Math.round((ng+m)*255);
+          data[i+2] = Math.round((nb+m)*255);
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      // Export as JPEG at high quality
+      const processed = canvas.toDataURL('image/jpeg', 0.95);
+      scanImageBase64 = processed.split(',')[1];
+      scanImageType = 'image/jpeg';
+      document.getElementById('preview-img').src = processed;
+      document.getElementById('scan-preview').style.display = 'block';
+      document.getElementById('scan-results').style.display = 'none';
+      lastScanResult = null;
+    };
+    img.src = dataUrl;
   };
   reader.readAsDataURL(file);
 }
